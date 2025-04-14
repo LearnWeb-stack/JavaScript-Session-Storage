@@ -1,0 +1,367 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Storage Demo</title>
+    <style>
+        /* Basic Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #4267B2;
+        }
+
+        .info-box {
+            background-color: #e7f3ff;
+            border-left: 4px solid #4267B2;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"], 
+        input[type="email"], 
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #4267B2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #365899;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .saved-data {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+
+        .saved-data h2 {
+            margin-bottom: 15px;
+            color: #4267B2;
+        }
+
+        .data-item {
+            background-color: #f9f9f9;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            padding: 20px 0;
+        }
+
+        .clear-btn {
+            background-color: #e74c3c;
+        }
+
+        .clear-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .counter {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .session-note {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Session Storage Demo</h1>
+        
+        <div class="info-box">
+            <p>This demo shows how sessionStorage works. Enter some notes below and they'll be saved in your browser's session storage.</p>
+            <p><strong>Note:</strong> Session storage data is cleared when you close the browser tab or window!</p>
+        </div>
+        
+        <div class="form-group">
+            <label for="title">Title:</label>
+            <input type="text" id="title" placeholder="Enter a title for your note">
+        </div>
+        
+        <div class="form-group">
+            <label for="note">Note:</label>
+            <textarea id="note" rows="4" placeholder="Enter your note here..."></textarea>
+        </div>
+        
+        <div class="button-group">
+            <button id="save-btn">Save Note</button>
+            <button id="clear-btn" class="clear-btn">Clear All Notes</button>
+        </div>
+        
+        <div class="counter">
+            <span id="session-counter">Session started: 0 seconds ago</span>
+        </div>
+        
+        <div class="saved-data">
+            <h2>Saved Notes</h2>
+            <div id="notes-container"></div>
+            <div id="no-notes" class="no-data">No notes yet. Add one to get started!</div>
+        </div>
+        
+        <div class="session-note">
+            <p><strong>What is Session Storage?</strong></p>
+            <p>Unlike localStorage, sessionStorage only keeps data during your current browser session. When you close this tab or window, all this data will be deleted!</p>
+            <p>Try it: Save some notes, then close this tab and open it again - your notes will be gone.</p>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const titleInput = document.getElementById('title');
+        const noteInput = document.getElementById('note');
+        const saveButton = document.getElementById('save-btn');
+        const clearButton = document.getElementById('clear-btn');
+        const notesContainer = document.getElementById('notes-container');
+        const noNotesMessage = document.getElementById('no-notes');
+        const sessionCounter = document.getElementById('session-counter');
+        
+        // Note data array
+        let notes = [];
+        
+        // Session start time
+        const sessionStartTime = Date.now();
+        
+        // Function to update the session timer
+        function updateSessionTimer() {
+            const secondsElapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+            sessionCounter.textContent = `Session started: ${secondsElapsed} seconds ago`;
+        }
+        
+        // Set up the session timer (updates every second)
+        setInterval(updateSessionTimer, 1000);
+        
+        // Load notes from sessionStorage when page loads
+        function loadNotes() {
+            // Try to get notes from sessionStorage
+            const savedNotes = sessionStorage.getItem('notes');
+            
+            // If notes exist in sessionStorage, parse them into our notes array
+            if (savedNotes) {
+                notes = JSON.parse(savedNotes);
+                renderNotes();
+            }
+        }
+        
+        // Save notes to sessionStorage
+        function saveNotes() {
+            sessionStorage.setItem('notes', JSON.stringify(notes));
+        }
+        
+        // Add a new note
+        function addNote() {
+            const title = titleInput.value.trim();
+            const noteText = noteInput.value.trim();
+            
+            // Check if note has at least a title or text content
+            if (title || noteText) {
+                // Create a new note object
+                const newNote = {
+                    id: Date.now(), // Generate a unique ID using timestamp
+                    title: title || 'Untitled Note', // Default title if none provided
+                    text: noteText || '',
+                    createdAt: new Date().toLocaleString()
+                };
+                
+                // Add note to array
+                notes.push(newNote);
+                
+                // Save to sessionStorage
+                saveNotes();
+                
+                // Clear inputs
+                titleInput.value = '';
+                noteInput.value = '';
+                
+                // Update UI
+                renderNotes();
+            }
+        }
+        
+        // Delete a note
+        function deleteNote(noteId) {
+            // Filter out the note with the given ID
+            notes = notes.filter(function(note) {
+                return note.id !== noteId;
+            });
+            
+            // Save updated notes to sessionStorage
+            saveNotes();
+            
+            // Update UI
+            renderNotes();
+        }
+        
+        // Clear all notes
+        function clearAllNotes() {
+            // Confirm before clearing
+            if (notes.length > 0) {
+                const confirmed = confirm("Are you sure you want to delete all notes?");
+                if (confirmed) {
+                    notes = [];
+                    saveNotes();
+                    renderNotes();
+                }
+            }
+        }
+        
+        // Render notes to the UI
+        function renderNotes() {
+            // Clear current list
+            notesContainer.innerHTML = '';
+            
+            // Show/hide the "no notes" message
+            if (notes.length === 0) {
+                noNotesMessage.style.display = 'block';
+            } else {
+                noNotesMessage.style.display = 'none';
+            }
+            
+            // Create note elements
+            notes.forEach(function(note) {
+                // Create note container
+                const noteElement = document.createElement('div');
+                noteElement.className = 'data-item';
+                
+                // Create title element
+                const titleElement = document.createElement('h3');
+                titleElement.textContent = note.title;
+                
+                // Create text content element
+                const textElement = document.createElement('p');
+                textElement.textContent = note.text;
+                
+                // Create timestamp element
+                const timeElement = document.createElement('small');
+                timeElement.textContent = `Created: ${note.createdAt}`;
+                timeElement.style.color = '#888';
+                timeElement.style.display = 'block';
+                timeElement.style.marginTop = '5px';
+                
+                // Create delete button
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.style.marginTop = '10px';
+                deleteButton.style.padding = '5px 10px';
+                deleteButton.style.fontSize = '14px';
+                
+                // Add delete event listener
+                deleteButton.addEventListener('click', function() {
+                    deleteNote(note.id);
+                });
+                
+                // Add elements to note container
+                noteElement.appendChild(titleElement);
+                noteElement.appendChild(textElement);
+                noteElement.appendChild(timeElement);
+                noteElement.appendChild(deleteButton);
+                
+                // Add note to the notes container
+                notesContainer.appendChild(noteElement);
+            });
+        }
+        
+        // Check and display session storage size
+        function checkStorageSize() {
+            let storageUsed = 0;
+            
+            // Calculate total size by counting characters in sessionStorage
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                const value = sessionStorage.getItem(key);
+                storageUsed += key.length + value.length;
+            }
+            
+            // Convert to KB
+            const sizeInKB = (storageUsed / 1024).toFixed(2);
+            
+            // Store size info in sessionStorage itself
+            sessionStorage.setItem('storageUsed', sizeInKB + ' KB');
+        }
+        
+        // Event listeners
+        saveButton.addEventListener('click', function() {
+            addNote();
+            checkStorageSize();
+        });
+        
+        clearButton.addEventListener('click', function() {
+            clearAllNotes();
+            checkStorageSize();
+        });
+        
+        // Initialize the app
+        loadNotes();
+        updateSessionTimer();
+        checkStorageSize();
+    </script>
+</body>
+</html>
